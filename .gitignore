@@ -1,0 +1,25 @@
+# Maven build output
+**/target/
+
+# Java compiled files
+*.class
+
+# Liberty generated/runtime files
+**/wlp/
+**/servers/
+
+# Logs
+*.log
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# macOS
+.DS_Store
+
+# Environment and secret files
+.env
+.env.*
+!.env.example
