@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-liberty
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello-liberty
+  template:
+    metadata:
+      labels:
+        app: hello-liberty
+    spec:
+      containers:
+        - name: hello-liberty
+          image: docker.io/dantr3x/hello-liberty:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 9080

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-liberty
+spec:
+  selector:
+    app: hello-liberty
+  ports:
+    - name: http
+      port: 9080
+      targetPort: 9080
