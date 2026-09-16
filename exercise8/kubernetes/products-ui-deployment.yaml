@@ -20,8 +20,11 @@ spec:
     spec:
       containers:
         - name: products-ui
-          image: products-ui:1.0
-          imagePullPolicy: IfNotPresent
+          # See products-api-deployment.yaml — pulled from Docker Hub with
+          # imagePullPolicy: Always so a rollout restart fetches whatever main
+          # most recently built, instead of a locally `minikube image load`-ed tag.
+          image: allanbs88/products-ui:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 9080

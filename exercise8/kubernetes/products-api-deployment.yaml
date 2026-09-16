@@ -25,8 +25,14 @@ spec:
     spec:
       containers:
         - name: products-api
-          image: products-api:1.0
-          imagePullPolicy: IfNotPresent
+          # Pulled from Docker Hub (pushed by .github/workflows/ci-cd.yml on every
+          # push to main) rather than a locally `minikube image load`-ed tag, so
+          # `kubectl rollout restart deployment/products-api` picks up whatever
+          # main most recently built — imagePullPolicy: Always is required for
+          # that, since Kubernetes otherwise treats a repeated ":latest" tag as
+          # already present and skips the pull.
+          image: allanbs88/products-api:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 9081
