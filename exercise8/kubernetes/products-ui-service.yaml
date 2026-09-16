@@ -1,0 +1,24 @@
+# NodePort, not ClusterIP — this is the one service meant to be reached from
+# outside the cluster. products-api and products-db stay ClusterIP on purpose:
+# nothing outside the cluster should ever call them directly.
+#
+# nodePort is pinned to 30080 (must be in the 30000-32767 range) so it's the
+# same port every time you apply this file, instead of a random one.
+#
+# On Linux, this Service is reachable at http://$(minikube ip):30080. On macOS
+# with the docker driver, it is NOT — that node IP lives inside Docker Desktop's
+# VM network and isn't routable from the host. Use `minikube service products-ui
+# --url` there instead; see Step 6 in 08-microservices-on-minikube.md.
+apiVersion: v1
+kind: Service
+metadata:
+  name: products-ui
+spec:
+  type: NodePort
+  selector:
+    app: products-ui
+  ports:
+    - name: http
+      port: 9080
+      targetPort: 9080
+      nodePort: 30080

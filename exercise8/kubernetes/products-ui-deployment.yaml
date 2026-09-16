@@ -1,0 +1,38 @@
+# readinessProbe hits /ui/products, which always returns 200 even when
+# products-api is unreachable — ProductsController.doGet() catches that IOException
+# and renders an error message instead of failing the request. So this probe only
+# proves products-ui itself is serving HTTP; it does not prove the backend chain is
+# healthy. That's a real, worth-knowing limitation of "degrade gracefully" UIs, not
+# a bug — see the Concepts section in 08-microservices-on-minikube.md.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: products-ui
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: products-ui
+  template:
+    metadata:
+      labels:
+        app: products-ui
+    spec:
+      containers:
+        - name: products-ui
+          image: products-ui:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 9080
+          readinessProbe:
+            httpGet:
+              path: /ui/products
+              port: 9080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 9080
+            initialDelaySeconds: 20
+            periodSeconds: 15

@@ -1,0 +1,25 @@
+<server description="products-ui Liberty server">
+
+    <featureManager>
+        <!-- Servlet support -->
+        <feature>servlet-6.0</feature>
+        <!-- Jakarta Pages (JSP) support -->
+        <feature>pages-3.1</feature>
+        <!-- Jakarta JSON Processing — ProductsController parses/builds JSON for products-api -->
+        <feature>jsonp-2.1</feature>
+    </featureManager>
+
+    <!-- UI frontend listens on 9080 — same default port as earlier lab exercises -->
+    <httpEndpoint id="defaultHttpEndpoint"
+                  host="*"
+                  httpPort="9080"
+                  httpsPort="9443" />
+
+    <!--
+        Deploy products-ui.war at context root /ui
+        Full URL: http://localhost:9080/ui/products
+    -->
+    <webApplication location="products-ui.war"
+                    contextRoot="/ui" />
+
+</server>

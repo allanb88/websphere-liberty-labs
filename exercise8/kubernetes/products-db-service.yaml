@@ -1,0 +1,15 @@
+# Named "products-db" on purpose — products-api/server.xml already points its
+# dataSource at serverName="products-db". Kubernetes' DNS resolves this Service
+# name inside the cluster exactly the way Docker's embedded DNS resolved the
+# container name on products-net, so no application config changes.
+apiVersion: v1
+kind: Service
+metadata:
+  name: products-db
+spec:
+  selector:
+    app: products-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432

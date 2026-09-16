@@ -1,0 +1,58 @@
+<server description="products-api Liberty server">
+
+    <featureManager>
+        <!-- Servlet support -->
+        <feature>servlet-6.0</feature>
+        <!-- JDBC DataSource support -->
+        <feature>jdbc-4.2</feature>
+        <!-- JNDI lookups (java:comp/env/jdbc/products) -->
+        <feature>jndi-1.0</feature>
+        <!-- Jakarta JSON Processing (jakarta.json API) -->
+        <feature>jsonp-2.1</feature>
+    </featureManager>
+
+    <!-- REST API listens on 9081 to avoid conflict with products-ui on 9080 -->
+    <httpEndpoint id="defaultHttpEndpoint"
+                  host="*"
+                  httpPort="9081"
+                  httpsPort="9444" />
+
+    <!--
+        JDBC driver library. The Dockerfile copies postgresql-driver.jar (built by
+        the maven-dependency-plugin execution in pom.xml) into /config/lib/ during
+        the image build — nothing to place here manually.
+    -->
+    <library id="PostgreSQLLib">
+        <fileset dir="${server.config.dir}/lib" includes="postgresql-*.jar" />
+    </library>
+
+    <!--
+        DataSource bound to JNDI name jdbc/products. The web.xml resource-ref
+        in products-api (res-ref-name jdbc/products) auto-links to this by name,
+        so the @Resource(lookup = "java:comp/env/jdbc/products") injection in
+        ProductsServlet resolves without any extra binding.
+
+        serverName is the Postgres container's name on the shared Docker network
+        (products-net), not localhost — the API and the database are separate
+        containers, so "localhost" would mean "inside the products-api container
+        itself" and the connection would fail.
+    -->
+    <dataSource id="productsDS" jndiName="jdbc/products">
+        <jdbcDriver libraryRef="PostgreSQLLib" />
+        <properties.postgresql
+            serverName="products-db" portNumber="5432"
+            databaseName="productsdb"
+            user="liberty" password="liberty" />
+        <connectionManager maxPoolSize="10" />
+    </dataSource>
+
+    <!--
+        Deploy products-api.war at context root /api
+        Full URL: http://localhost:9081/api/products
+    -->
+    <webApplication location="products-api.war"
+                    contextRoot="/api">
+        <classloader commonLibraryRef="PostgreSQLLib" />
+    </webApplication>
+
+</server>

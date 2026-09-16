@@ -1,0 +1,44 @@
+# No initContainer waiting on products-db here, on purpose: Liberty's JDBC pool is
+# lazy, so the server starts and starts listening on 9081 even before Postgres is
+# reachable. readinessProbe (which calls the real /api/products endpoint, touching
+# the DB) is what gates traffic until the DB is actually usable — the Service simply
+# won't route to a pod that isn't Ready yet. This replaces docker-compose's
+# depends_on/condition:service_healthy with a Kubernetes-native mechanism.
+#
+# livenessProbe deliberately does NOT hit /api/products: if it depended on
+# products-db, a database outage would make Kubernetes kill and restart perfectly
+# healthy API pods in a loop, which fixes nothing. livenessProbe only checks that
+# the JVM's HTTP listener is still up.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: products-api
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: products-api
+  template:
+    metadata:
+      labels:
+        app: products-api
+    spec:
+      containers:
+        - name: products-api
+          image: products-api:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 9081
+          readinessProbe:
+            httpGet:
+              path: /api/products
+              port: 9081
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 9081
+            initialDelaySeconds: 20
+            periodSeconds: 15

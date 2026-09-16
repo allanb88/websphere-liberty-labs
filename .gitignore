@@ -23,3 +23,7 @@
 .env
 .env.*
 !.env.example
+
+# Claude Code local state (never publish)
+.claude/
+CLAUDE.local.md

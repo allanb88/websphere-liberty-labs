@@ -1,0 +1,48 @@
+# A single-replica Deployment, not a StatefulSet, and no PersistentVolumeClaim —
+# data is lost if this pod is rescheduled. That's an acceptable simplification for
+# this lab; see the "Exercises" section in 08-microservices-on-minikube.md for the
+# StatefulSet + PVC version a real deployment would need.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: products-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: products-db
+  template:
+    metadata:
+      labels:
+        app: products-db
+    spec:
+      containers:
+        - name: products-db
+          image: postgres:16
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: productsdb
+            - name: POSTGRES_USER
+              value: liberty
+            - name: POSTGRES_PASSWORD
+              value: liberty
+          volumeMounts:
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "liberty", "-d", "productsdb"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "liberty", "-d", "productsdb"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: init-sql
+          configMap:
+            name: products-db-init

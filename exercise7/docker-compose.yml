@@ -1,0 +1,43 @@
+services:
+
+  products-db:
+    image: postgres:16
+    container_name: products-db
+    environment:
+      POSTGRES_DB: productsdb
+      POSTGRES_USER: liberty
+      POSTGRES_PASSWORD: liberty
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U liberty -d productsdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  products-api:
+    build: ./products-api
+    container_name: products-api
+    depends_on:
+      products-db:
+        condition: service_healthy
+    ports:
+      - "9081:9081"
+
+  products-ui:
+    build: ./products-ui
+    container_name: products-ui
+    depends_on:
+      - products-api
+    ports:
+      - "9080:9080"
+
+# Named "products-net" to match the network used throughout 07-liberty-microservices.md.
+# Compose puts every service above on this one network automatically and resolves
+# each service's name (products-db, products-api, products-ui) as a hostname for
+# the others — the same DNS names already hard-coded into server.xml and ApiClient.
+networks:
+  default:
+    name: products-net

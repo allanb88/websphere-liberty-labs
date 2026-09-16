@@ -1,0 +1,14 @@
+# Named "products-api" on purpose — products-ui's ApiClient already calls
+# http://products-api:9081/api/products, the same name it used as a container
+# name on products-net. Same code, same hostname, different DNS provider.
+apiVersion: v1
+kind: Service
+metadata:
+  name: products-api
+spec:
+  selector:
+    app: products-api
+  ports:
+    - name: http
+      port: 9081
+      targetPort: 9081

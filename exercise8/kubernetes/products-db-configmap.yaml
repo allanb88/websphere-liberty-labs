@@ -1,0 +1,21 @@
+# Same DDL + seed data as exercise7/db/init.sql, inlined as a ConfigMap so
+# Postgres's entrypoint script can mount it at /docker-entrypoint-initdb.d/.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: products-db-init
+data:
+  init.sql: |
+    CREATE TABLE products (
+        id    SERIAL PRIMARY KEY,
+        name  VARCHAR(100) NOT NULL,
+        price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
+        stock INT NOT NULL DEFAULT 0 CHECK (stock >= 0)
+    );
+
+    INSERT INTO products (name, price, stock) VALUES
+        ('Wireless Keyboard',  49.99, 120),
+        ('USB-C Hub',          34.95,  85),
+        ('Mechanical Mouse',   59.00,  60),
+        ('Monitor Stand',      29.99,  40),
+        ('Laptop Sleeve 15"',  19.50, 200);
