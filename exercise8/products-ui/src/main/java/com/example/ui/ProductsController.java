@@ -95,7 +95,9 @@ public class ProductsController extends HttpServlet {
                 .toString();
     }
 
-    private List<Map<String, String>> parseList(String json) {
+    // Package-private (not private) so JsonUtilTest-style unit tests can call it
+    // directly without going through the servlet HTTP machinery.
+    List<Map<String, String>> parseList(String json) {
         List<Map<String, String>> result = new ArrayList<>();
         try (JsonReader reader = Json.createReader(new StringReader(json))) {
             JsonArray array = reader.readArray();

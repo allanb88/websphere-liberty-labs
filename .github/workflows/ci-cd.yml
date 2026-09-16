@@ -4,20 +4,24 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'exercise7/products-api/**'
-      - 'exercise7/products-ui/**'
+      - 'exercise8/products-api/**'
+      - 'exercise8/products-ui/**'
+      - 'exercise8/db/**'
       - '.github/workflows/ci-cd.yml'
   push:
     branches: [main]
     paths:
-      - 'exercise7/products-api/**'
-      - 'exercise7/products-ui/**'
+      - 'exercise8/products-api/**'
+      - 'exercise8/products-ui/**'
+      - 'exercise8/db/**'
       - '.github/workflows/ci-cd.yml'
 
 jobs:
   # Runs on every PR and every push to main. A PR from a fork never has
   # access to secrets on this repo, so this job can only ever read code and
-  # run tests — nothing here can leak DOCKERHUB_TOKEN.
+  # run tests — nothing here can leak DOCKERHUB_TOKEN. products-db has no
+  # application code (just a seed .sql baked into the postgres image), so
+  # there's nothing to unit test there — it only goes through build-and-push.
   test:
     name: Unit tests (${{ matrix.service }})
     runs-on: ubuntu-latest
@@ -32,10 +36,10 @@ jobs:
           distribution: temurin
           java-version: '11'
           cache: maven
-          cache-dependency-path: exercise7/${{ matrix.service }}/pom.xml
+          cache-dependency-path: exercise8/${{ matrix.service }}/pom.xml
 
       - name: Run unit tests
-        working-directory: exercise7/${{ matrix.service }}
+        working-directory: exercise8/${{ matrix.service }}
         run: mvn -B test
 
       - name: Upload test report
@@ -43,20 +47,26 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: surefire-reports-${{ matrix.service }}
-          path: exercise7/${{ matrix.service }}/target/surefire-reports
+          path: exercise8/${{ matrix.service }}/target/surefire-reports
           retention-days: 7
 
   # Only runs after tests pass, and only for a push that landed on main
   # (never for a PR, which may not even be merged yet) — the gate is both
   # "tests green" and "this is the real main branch".
   build-and-push:
-    name: Build & push (${{ matrix.service }})
+    name: Build & push (${{ matrix.image }})
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [products-api, products-ui]
+        include:
+          - image: products-api
+            context: exercise8/products-api
+          - image: products-ui
+            context: exercise8/products-ui
+          - image: products-db
+            context: exercise8/db
     steps:
       - uses: actions/checkout@v4
 
@@ -67,8 +77,8 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: exercise7/${{ matrix.service }}
+          context: ${{ matrix.context }}
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:${{ github.sha }}
