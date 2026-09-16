@@ -76,22 +76,34 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - uses: docker/setup-qemu-action@v3
+
       - uses: docker/setup-buildx-action@v3
 
+      # Multi-arch (amd64 + arm64) on purpose: this runner is amd64, but these
+      # images also need to run on an arm64 Minikube (e.g. Apple Silicon) via
+      # exercise8/deploy-local.sh. A single-arch push here silently overwrites
+      # whatever platform someone last pushed manually to the same :latest tag,
+      # breaking `kubectl rollout restart` on the other architecture with
+      # "no matching manifest for linux/arm64/v8" — that's a real failure this
+      # pipeline hit once already. setup-qemu-action lets buildx cross-build the
+      # arm64 image on this amd64 runner instead of needing a native arm64 runner.
+      #
       # products-api and products-ui both pull FROM icr.io/appcafe/websphere-liberty
-      # (IBM's registry) as their runtime base image. That pull has timed out from
-      # GitHub-hosted runners before (dial tcp ...: i/o timeout resolving the
-      # manifest) — a transient network issue between GitHub and icr.io, not a
-      # problem with the Dockerfile, so the fix is to retry the whole build+push,
-      # not to change what it does.
-      - name: Build and push (retries on transient registry timeouts)
+      # (IBM's registry, which does publish arm64) as their runtime base image.
+      # That pull has timed out from GitHub-hosted runners before (dial tcp ...:
+      # i/o timeout resolving the manifest) — a transient network issue between
+      # GitHub and icr.io, not a problem with the Dockerfile, so the fix is to
+      # retry the whole build+push, not to change what it does.
+      - name: Build and push (multi-arch, retries on transient registry timeouts)
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 10
+          timeout_minutes: 15
           max_attempts: 3
           retry_wait_seconds: 20
           command: >
             docker buildx build --push
+            --platform linux/amd64,linux/arm64
             -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:latest
             -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:${{ github.sha }}
             ${{ matrix.context }}
