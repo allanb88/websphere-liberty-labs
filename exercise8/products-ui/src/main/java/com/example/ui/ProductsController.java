@@ -59,6 +59,11 @@ public class ProductsController extends HttpServlet {
             method = "POST";
         }
 
+        // Set only on a successful create, so products.jsp can highlight that one
+        // row — the API echoes back the created product (with its DB-generated
+        // id) in the 201 response body, which is otherwise discarded.
+        String justAddedId = null;
+
         try {
             if ("PUT".equalsIgnoreCase(method)) {
                 String id = req.getParameter("id");
@@ -67,7 +72,9 @@ public class ProductsController extends HttpServlet {
                 String id = req.getParameter("id");
                 api.delete("/" + id);
             } else {
-                api.post(toJson(req));
+                String created = api.post(toJson(req));
+                justAddedId = String.valueOf(
+                        Json.createReader(new StringReader(created)).readObject().getInt("id"));
             }
         } catch (IOException e) {
             // Swallow and redirect anyway — the reloaded list reflects the API's
@@ -75,7 +82,11 @@ public class ProductsController extends HttpServlet {
             // a flash-scoped error message across the redirect.
         }
 
-        resp.sendRedirect(req.getContextPath() + "/products");
+        String redirect = req.getContextPath() + "/products";
+        if (justAddedId != null) {
+            redirect += "?justAdded=" + justAddedId;
+        }
+        resp.sendRedirect(redirect);
     }
 
     // ── JSON helpers ─────────────────────────────────────────────────────────
